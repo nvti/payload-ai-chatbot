@@ -57,14 +57,31 @@ export async function deleteChatById({ id }: { id: string }) {
   await payload.delete({ collection: 'chats', id });
 }
 
-export async function getChatsByUserId({ id }: { id: string }) {
+export async function getChatsByUserId({
+  id,
+  limit,
+  startingAfter,
+  endingBefore,
+}: {
+  id: string;
+  limit: number;
+  startingAfter: string | null;
+  endingBefore: string | null;
+}) {
   const payload = await getPayload();
   const { docs: chats } = await payload.find({
     collection: 'chats',
-    where: { userId: { equals: id } },
+    where: {
+      userId: { equals: id },
+      createdAt: {
+        greater_than: startingAfter,
+        less_than: endingBefore,
+      },
+    },
     sort: '-createdAt',
     depth: 0,
     pagination: false,
+    limit,
   });
   return chats;
 }
