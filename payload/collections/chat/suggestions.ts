@@ -2,6 +2,9 @@ import { CollectionConfig } from 'payload';
 
 export const suggestions: CollectionConfig = {
   slug: 'chat-suggestions',
+  admin: {
+    group: 'Chats',
+  },
   fields: [
     {
       name: 'documentId',
