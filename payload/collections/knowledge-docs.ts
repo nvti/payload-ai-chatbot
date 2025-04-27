@@ -76,6 +76,9 @@ export const knowledgeDocs: CollectionConfig = {
 
 export const knowledgeDocsUpload: CollectionConfig = {
   slug: 'knowledge-docs-upload',
+  admin: {
+    hidden: true,
+  },
   upload: true,
   fields: [],
 };
