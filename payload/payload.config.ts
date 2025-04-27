@@ -13,6 +13,7 @@ import { votes } from './collections/chat/votes';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { admin } from './collections/admin';
+import { knowledgeDocs, knowledgeDocsUpload } from './collections/knowledge-docs';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -28,6 +29,8 @@ export default buildConfig({
     documents,
     suggestions,
     chatMedia,
+    knowledgeDocs,
+    knowledgeDocsUpload,
   ],
 
   // Your Payload secret - should be a complex and secure string, unguessable

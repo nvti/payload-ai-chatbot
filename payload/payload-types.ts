@@ -75,6 +75,8 @@ export interface Config {
     'chat-documents': ChatDocument;
     'chat-suggestions': ChatSuggestion;
     'chat-media': ChatMedia;
+    'knowledge-docs': KnowledgeDoc;
+    'knowledge-docs-upload': KnowledgeDocsUpload;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -89,6 +91,8 @@ export interface Config {
     'chat-documents': ChatDocumentsSelect<false> | ChatDocumentsSelect<true>;
     'chat-suggestions': ChatSuggestionsSelect<false> | ChatSuggestionsSelect<true>;
     'chat-media': ChatMediaSelect<false> | ChatMediaSelect<true>;
+    'knowledge-docs': KnowledgeDocsSelect<false> | KnowledgeDocsSelect<true>;
+    'knowledge-docs-upload': KnowledgeDocsUploadSelect<false> | KnowledgeDocsUploadSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -257,6 +261,39 @@ export interface ChatMedia {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "knowledge-docs".
+ */
+export interface KnowledgeDoc {
+  id: string;
+  type?: ('raw' | 'webpage' | 'document') | null;
+  url?: string | null;
+  file?: (string | null) | KnowledgeDocsUpload;
+  title?: string | null;
+  status?: ('pending' | 'fulfilled' | 'indexed' | 'error') | null;
+  content?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "knowledge-docs-upload".
+ */
+export interface KnowledgeDocsUpload {
+  id: string;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
@@ -293,6 +330,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'chat-media';
         value: string | ChatMedia;
+      } | null)
+    | ({
+        relationTo: 'knowledge-docs';
+        value: string | KnowledgeDoc;
+      } | null)
+    | ({
+        relationTo: 'knowledge-docs-upload';
+        value: string | KnowledgeDocsUpload;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -429,6 +474,37 @@ export interface ChatSuggestionsSelect<T extends boolean = true> {
  * via the `definition` "chat-media_select".
  */
 export interface ChatMediaSelect<T extends boolean = true> {
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "knowledge-docs_select".
+ */
+export interface KnowledgeDocsSelect<T extends boolean = true> {
+  type?: T;
+  url?: T;
+  file?: T;
+  title?: T;
+  status?: T;
+  content?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "knowledge-docs-upload_select".
+ */
+export interface KnowledgeDocsUploadSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   url?: T;
