@@ -1,6 +1,7 @@
 import { RequiredDataFromCollectionSlug } from 'payload';
 import { getPayload } from '../utils';
 import { genSaltSync, hashSync } from 'bcrypt-ts';
+import { generateUUID } from '@/lib/utils';
 
 export async function getUser(email: string) {
   const payload = await getPayload();
@@ -17,6 +18,19 @@ export async function getUser(email: string) {
 export async function createUser(email: string, password: string) {
   const salt = genSaltSync(10);
   const hash = hashSync(password, salt);
+
+  const payload = await getPayload();
+  const user = await payload.create({
+    collection: 'users',
+    data: { email, password: hash },
+  });
+  return user;
+}
+
+export async function createGuestUser() {
+  const email = `guest-${Date.now()}`;
+  const salt = genSaltSync(10);
+  const hash = hashSync(generateUUID(), salt);
 
   const payload = await getPayload();
   const user = await payload.create({
@@ -111,6 +125,28 @@ export async function saveMessages({
     results.push(result);
   }
   return results;
+}
+
+export async function getMessageCountByUserId({
+  id,
+  differenceInHours,
+}: { id: string; differenceInHours: number }) {
+  const payload = await getPayload();
+
+  const twentyFourHoursAgo = new Date(
+    Date.now() - differenceInHours * 60 * 60 * 1000,
+  );
+
+  const { totalDocs } = await payload.count({
+    collection: 'chat-messages',
+    where: {
+      userId: { equals: id },
+      role: { equals: 'user' },
+      createdAt: { greater_than: twentyFourHoursAgo },
+    },
+  });
+
+  return totalDocs ?? 0;
 }
 
 export async function getMessagesByChatId({ id }: { id: string }) {

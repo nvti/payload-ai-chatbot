@@ -1,6 +1,6 @@
 {
   "name": "ai-chatbot",
-  "version": "3.0.4",
+  "version": "3.0.8",
   "private": true,
   "type": "module",
   "scripts": {
@@ -43,7 +43,6 @@
     "@vercel/postgres": "^0.10.0",
     "ai": "4.3.4",
     "bcrypt-ts": "^5.0.2",
-    "bson": "^6.10.3",
     "class-variance-authority": "^0.7.0",
     "classnames": "^2.5.1",
     "clsx": "^2.1.1",
