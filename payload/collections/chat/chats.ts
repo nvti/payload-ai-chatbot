@@ -2,6 +2,9 @@ import { CollectionConfig } from 'payload';
 
 export const chats: CollectionConfig = {
   slug: 'chats',
+  admin: {
+    group: 'Chats',
+  },
   fields: [
     {
       name: 'title',
