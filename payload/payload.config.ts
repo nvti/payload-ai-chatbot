@@ -13,7 +13,7 @@ import { votes } from './collections/chat/votes';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { admin } from './collections/admin';
-import { knowledgeDocs, knowledgeDocsUpload } from './collections/knowledge-docs';
+import { ragPlugin } from './plugins/rag';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -29,8 +29,6 @@ export default buildConfig({
     documents,
     suggestions,
     chatMedia,
-    knowledgeDocs,
-    knowledgeDocsUpload,
   ],
 
   // Your Payload secret - should be a complex and secure string, unguessable
@@ -50,6 +48,7 @@ export default buildConfig({
   // }),
   // If you'd like to use Rich Text, pass your editor here
   editor: lexicalEditor(),
+  plugins: [ragPlugin()],
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },

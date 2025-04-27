@@ -1,7 +1,12 @@
-import { CollectionConfig, SelectField, TextareaField, TextField, ValidateOptions } from 'payload';
+import {
+  CollectionConfig,
+  TextareaField,
+  TextField,
+  ValidateOptions,
+} from 'payload';
 
 export const knowledgeDocs: CollectionConfig = {
-  slug: 'knowledge-docs',
+  slug: 'rag-knowledge-docs',
   fields: [
     {
       type: 'row',
@@ -16,7 +21,7 @@ export const knowledgeDocs: CollectionConfig = {
           name: 'url',
           type: 'text',
           admin: {
-            condition: (data, siblingData) => { 
+            condition: (data, siblingData) => {
               return siblingData.type === 'webpage';
             },
           },
@@ -24,25 +29,28 @@ export const knowledgeDocs: CollectionConfig = {
         {
           name: 'file',
           type: 'upload',
-          relationTo: 'knowledge-docs-upload',
+          relationTo: 'rag-knowledge-docs-upload' as any,
           admin: {
             condition: (data, siblingData) => {
               return siblingData.type === 'document';
             },
           },
         },
-      ]
+      ],
     },
     {
       name: 'title',
       type: 'text',
-      validate: (value: string | null | undefined, options: ValidateOptions<unknown, unknown, TextField, string>) => {
+      validate: (
+        value: string | null | undefined,
+        options: ValidateOptions<unknown, unknown, TextField, string>,
+      ) => {
         const data = options.siblingData as any;
         if (data?.type === 'raw' && !value) {
           return 'This is raw, so it must have a title';
         }
         return true;
-      }
+      },
     },
     {
       name: 'status',
@@ -54,13 +62,16 @@ export const knowledgeDocs: CollectionConfig = {
     {
       name: 'content',
       type: 'textarea',
-      validate: (value: string | null | undefined, options: ValidateOptions<unknown, unknown, TextareaField, string>) => {
+      validate: (
+        value: string | null | undefined,
+        options: ValidateOptions<unknown, unknown, TextareaField, string>,
+      ) => {
         const data = options.siblingData as any;
         if (data?.type === 'raw' && !value) {
           return 'This is raw, so it must have a title';
         }
         return true;
-      }
+      },
     },
   ],
   hooks: {
@@ -69,13 +80,13 @@ export const knowledgeDocs: CollectionConfig = {
         if (data.type === 'raw' && data.status === 'pending') {
           data.status = 'fulfilled';
         }
-      }
-    ]
-  }
+      },
+    ],
+  },
 };
 
 export const knowledgeDocsUpload: CollectionConfig = {
-  slug: 'knowledge-docs-upload',
+  slug: 'rag-knowledge-docs-upload',
   admin: {
     hidden: true,
   },

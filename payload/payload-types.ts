@@ -75,8 +75,8 @@ export interface Config {
     'chat-documents': ChatDocument;
     'chat-suggestions': ChatSuggestion;
     'chat-media': ChatMedia;
-    'knowledge-docs': KnowledgeDoc;
-    'knowledge-docs-upload': KnowledgeDocsUpload;
+    'rag-knowledge-docs': RagKnowledgeDoc;
+    'rag-knowledge-docs-upload': RagKnowledgeDocsUpload;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -91,8 +91,8 @@ export interface Config {
     'chat-documents': ChatDocumentsSelect<false> | ChatDocumentsSelect<true>;
     'chat-suggestions': ChatSuggestionsSelect<false> | ChatSuggestionsSelect<true>;
     'chat-media': ChatMediaSelect<false> | ChatMediaSelect<true>;
-    'knowledge-docs': KnowledgeDocsSelect<false> | KnowledgeDocsSelect<true>;
-    'knowledge-docs-upload': KnowledgeDocsUploadSelect<false> | KnowledgeDocsUploadSelect<true>;
+    'rag-knowledge-docs': RagKnowledgeDocsSelect<false> | RagKnowledgeDocsSelect<true>;
+    'rag-knowledge-docs-upload': RagKnowledgeDocsUploadSelect<false> | RagKnowledgeDocsUploadSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -261,13 +261,13 @@ export interface ChatMedia {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "knowledge-docs".
+ * via the `definition` "rag-knowledge-docs".
  */
-export interface KnowledgeDoc {
+export interface RagKnowledgeDoc {
   id: string;
   type?: ('raw' | 'webpage' | 'document') | null;
   url?: string | null;
-  file?: (string | null) | KnowledgeDocsUpload;
+  file?: (string | null) | RagKnowledgeDocsUpload;
   title?: string | null;
   status?: ('pending' | 'fulfilled' | 'indexed' | 'error') | null;
   content?: string | null;
@@ -276,9 +276,9 @@ export interface KnowledgeDoc {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "knowledge-docs-upload".
+ * via the `definition` "rag-knowledge-docs-upload".
  */
-export interface KnowledgeDocsUpload {
+export interface RagKnowledgeDocsUpload {
   id: string;
   updatedAt: string;
   createdAt: string;
@@ -332,12 +332,12 @@ export interface PayloadLockedDocument {
         value: string | ChatMedia;
       } | null)
     | ({
-        relationTo: 'knowledge-docs';
-        value: string | KnowledgeDoc;
+        relationTo: 'rag-knowledge-docs';
+        value: string | RagKnowledgeDoc;
       } | null)
     | ({
-        relationTo: 'knowledge-docs-upload';
-        value: string | KnowledgeDocsUpload;
+        relationTo: 'rag-knowledge-docs-upload';
+        value: string | RagKnowledgeDocsUpload;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -488,9 +488,9 @@ export interface ChatMediaSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "knowledge-docs_select".
+ * via the `definition` "rag-knowledge-docs_select".
  */
-export interface KnowledgeDocsSelect<T extends boolean = true> {
+export interface RagKnowledgeDocsSelect<T extends boolean = true> {
   type?: T;
   url?: T;
   file?: T;
@@ -502,9 +502,9 @@ export interface KnowledgeDocsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "knowledge-docs-upload_select".
+ * via the `definition` "rag-knowledge-docs-upload_select".
  */
-export interface KnowledgeDocsUploadSelect<T extends boolean = true> {
+export interface RagKnowledgeDocsUploadSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   url?: T;
