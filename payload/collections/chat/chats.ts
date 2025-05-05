@@ -21,6 +21,7 @@ export const chats: CollectionConfig = {
       name: 'visibility',
       type: 'select',
       options: ['public', 'private'],
+      required: true,
       defaultValue: 'private',
     },
   ],

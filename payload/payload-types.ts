@@ -75,6 +75,7 @@ export interface Config {
     'chat-documents': ChatDocument;
     'chat-suggestions': ChatSuggestion;
     'chat-media': ChatMedia;
+    stream: Stream;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -89,6 +90,7 @@ export interface Config {
     'chat-documents': ChatDocumentsSelect<false> | ChatDocumentsSelect<true>;
     'chat-suggestions': ChatSuggestionsSelect<false> | ChatSuggestionsSelect<true>;
     'chat-media': ChatMediaSelect<false> | ChatMediaSelect<true>;
+    stream: StreamSelect<false> | StreamSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -163,7 +165,7 @@ export interface Chat {
   id: string;
   title: string;
   userId: string | User;
-  visibility?: ('public' | 'private') | null;
+  visibility: 'public' | 'private';
   updatedAt: string;
   createdAt: string;
 }
@@ -257,6 +259,16 @@ export interface ChatMedia {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "stream".
+ */
+export interface Stream {
+  id: string;
+  chat?: (string | null) | Chat;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
@@ -293,6 +305,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'chat-media';
         value: string | ChatMedia;
+      } | null)
+    | ({
+        relationTo: 'stream';
+        value: string | Stream;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -440,6 +456,15 @@ export interface ChatMediaSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "stream_select".
+ */
+export interface StreamSelect<T extends boolean = true> {
+  chat?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

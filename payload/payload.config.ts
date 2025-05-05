@@ -13,6 +13,7 @@ import { votes } from './collections/chat/votes';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { admin } from './collections/admin';
+import { stream } from './collections/chat/stream';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -28,6 +29,7 @@ export default buildConfig({
     documents,
     suggestions,
     chatMedia,
+    stream,
   ],
 
   // Your Payload secret - should be a complex and secure string, unguessable

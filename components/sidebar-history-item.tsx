@@ -1,4 +1,4 @@
-import { Chat } from '@/payload/payload-types';
+import type { Chat } from '@/payload/payload-types';
 import {
   SidebarMenuAction,
   SidebarMenuButton,
@@ -39,7 +39,7 @@ const PureChatItem = ({
 }) => {
   const { visibilityType, setVisibilityType } = useChatVisibility({
     chatId: chat.id,
-    initialVisibility: chat.visibility ?? 'private',
+    initialVisibilityType: chat.visibility,
   });
 
   return (

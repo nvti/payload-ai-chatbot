@@ -44,15 +44,17 @@ export async function saveChat({
   id,
   userId,
   title,
+  visibility,
 }: {
   id: string;
   userId: string;
   title: string;
+  visibility: 'private' | 'public';
 }) {
   const payload = await getPayload();
   const chat = await payload.create({
     collection: 'chats',
-    data: { id, userId, title },
+    data: { id, userId, title, visibility },
   });
   return chat;
 }
@@ -366,4 +368,33 @@ export async function updateChatVisibilityById({
     id: chatId,
     data: { visibility },
   });
+}
+
+export async function createStreamId({
+  streamId,
+  chatId,
+}: {
+  streamId: string;
+  chatId: string;
+}) {
+  const payload = await getPayload();
+  const stream = await payload.create({
+    collection: 'stream',
+    data: { id: streamId, chat: chatId },
+  });
+
+  return stream;
+}
+
+export async function getStreamIdsByChatId({ chatId }: { chatId: string }) {
+  const payload = await getPayload();
+  const { docs: streams } = await payload.find({
+    collection: 'stream',
+    where: { chat: { equals: chatId } },
+    depth: 0,
+    pagination: false,
+    select: {},
+  });
+
+  return streams.map((stream) => stream.id);
 }
