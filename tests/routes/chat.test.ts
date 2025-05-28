@@ -1,6 +1,7 @@
 import { generateUUID } from '@/lib/utils';
 import { expect, test } from '../fixtures';
 import { TEST_PROMPTS } from '../prompts/routes';
+import { getMessageByErrorCode } from '@/lib/errors';
 
 const chatIdsCreatedByAda: Array<string> = [];
 
@@ -14,8 +15,9 @@ test.describe
       });
       expect(response.status()).toBe(400);
 
-      const text = await response.text();
-      expect(text).toEqual('Invalid request body');
+      const { code, message } = await response.json();
+      expect(code).toEqual('bad_request:api');
+      expect(message).toEqual(getMessageByErrorCode('bad_request:api'));
     });
 
     test('Ada can invoke chat generation', async ({ adaContext }) => {
@@ -55,8 +57,9 @@ test.describe
       });
       expect(response.status()).toBe(403);
 
-      const text = await response.text();
-      expect(text).toEqual('Forbidden');
+      const { code, message } = await response.json();
+      expect(code).toEqual('forbidden:chat');
+      expect(message).toEqual(getMessageByErrorCode('forbidden:chat'));
     });
 
     test("Babbage cannot delete Ada's chat", async ({ babbageContext }) => {
@@ -67,8 +70,9 @@ test.describe
       );
       expect(response.status()).toBe(403);
 
-      const text = await response.text();
-      expect(text).toEqual('Forbidden');
+      const { code, message } = await response.json();
+      expect(code).toEqual('forbidden:chat');
+      expect(message).toEqual(getMessageByErrorCode('forbidden:chat'));
     });
 
     test('Ada can delete her own chat', async ({ adaContext }) => {
@@ -144,7 +148,7 @@ test.describe
       );
     });
 
-    test('Ada cannot resume chat generation that has ended', async ({
+    test('Ada can resume chat generation that has ended during request', async ({
       adaContext,
     }) => {
       const chatId = generateUUID();
@@ -191,6 +195,48 @@ test.describe
         secondResponse.text(),
       ]);
 
+      expect(secondResponseContent).toContain('append-message');
+    });
+
+    test('Ada cannot resume chat generation that has ended', async ({
+      adaContext,
+    }) => {
+      const chatId = generateUUID();
+
+      const firstResponse = await adaContext.request.post('/api/chat', {
+        data: {
+          id: chatId,
+          message: {
+            id: generateUUID(),
+            role: 'user',
+            content: 'Help me write an essay about Silcon Valley',
+            parts: [
+              {
+                type: 'text',
+                text: 'Help me write an essay about Silicon Valley',
+              },
+            ],
+            createdAt: new Date().toISOString(),
+          },
+          selectedChatModel: 'chat-model',
+          selectedVisibilityType: 'private',
+        },
+      });
+
+      const firstStatusCode = firstResponse.status();
+      expect(firstStatusCode).toBe(200);
+
+      await firstResponse.text();
+      await new Promise((resolve) => setTimeout(resolve, 15 * 1000));
+      await new Promise((resolve) => setTimeout(resolve, 15000));
+      const secondResponse = await adaContext.request.get(
+        `/api/chat?chatId=${chatId}`,
+      );
+
+      const secondStatusCode = secondResponse.status();
+      expect(secondStatusCode).toBe(200);
+
+      const secondResponseContent = await secondResponse.text();
       expect(secondResponseContent).toEqual('');
     });
 
@@ -266,7 +312,7 @@ test.describe
         },
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 10 * 1000));
 
       const secondRequest = babbageContext.request.get(
         `/api/chat?chatId=${chatId}`,

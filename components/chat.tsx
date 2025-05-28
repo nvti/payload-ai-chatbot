@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { ChatHeader } from '@/components/chat-header';
 import type { ChatVote as Vote } from '@/payload/payload-types';
-import { fetcher, generateChatId } from '@/lib/utils';
+import { fetcher, fetchWithErrorHandlers, generateChatId } from '@/lib/utils';
 import { Artifact } from './artifact';
 import { MultimodalInput } from './multimodal-input';
 import { Messages } from './messages';
@@ -18,6 +18,8 @@ import { toast } from './toast';
 import type { Session } from 'next-auth';
 import { useSearchParams } from 'next/navigation';
 import { useChatVisibility } from '@/hooks/use-chat-visibility';
+import { useAutoResume } from '@/hooks/use-auto-resume';
+import { ChatSDKError } from '@/lib/errors';
 
 export function Chat({
   id,
@@ -54,12 +56,14 @@ export function Chat({
     stop,
     reload,
     experimental_resume,
+    data,
   } = useChat({
     id,
     initialMessages,
     experimental_throttle: 100,
     sendExtraMessageFields: true,
     generateId: generateChatId,
+    fetch: fetchWithErrorHandlers,
     experimental_prepareRequestBody: (body) => ({
       id,
       message: body.messages.at(-1),
@@ -70,21 +74,14 @@ export function Chat({
       mutate(unstable_serialize(getChatHistoryPaginationKey));
     },
     onError: (error) => {
-      toast({
-        type: 'error',
-        description: error.message,
-      });
+      if (error instanceof ChatSDKError) {
+        toast({
+          type: 'error',
+          description: error.message,
+        });
+      }
     },
   });
-
-  useEffect(() => {
-    if (autoResume) {
-      experimental_resume();
-    }
-
-    // note: this hook has no dependencies since it only needs to run once
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const searchParams = useSearchParams();
   const query = searchParams.get('query');
@@ -110,6 +107,14 @@ export function Chat({
 
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
   const isArtifactVisible = useArtifactSelector((state) => state.isVisible);
+
+  useAutoResume({
+    autoResume,
+    initialMessages,
+    experimental_resume,
+    data,
+    setMessages,
+  });
 
   return (
     <>
