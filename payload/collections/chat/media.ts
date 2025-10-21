@@ -1,9 +1,9 @@
-import { CollectionConfig } from 'payload';
+import type { CollectionConfig } from "payload";
 
 export const media: CollectionConfig = {
-  slug: 'chat-media',
+  slug: "chat-media",
   admin: {
-    group: 'Chats',
+    group: "Chats",
   },
   upload: true,
   fields: [],

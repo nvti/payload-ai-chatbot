@@ -1,5 +1,5 @@
-import type { NextConfig } from 'next';
-import { withPayload } from '@payloadcms/next/withPayload';
+import { withPayload } from "@payloadcms/next/withPayload";
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   experimental: {
@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
-        hostname: 'avatar.vercel.sh',
+        hostname: "avatar.vercel.sh",
       },
     ],
   },

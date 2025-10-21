@@ -1,12 +1,12 @@
-import { CollectionConfig } from 'payload';
+import type { CollectionConfig } from "payload";
 
 export const stream: CollectionConfig = {
-  slug: 'stream',
+  slug: "stream",
   fields: [
     {
-      name: 'chat',
-      type: 'relationship',
-      relationTo: 'chats',
+      name: "chat",
+      type: "relationship",
+      relationTo: "chats",
     },
   ],
 };

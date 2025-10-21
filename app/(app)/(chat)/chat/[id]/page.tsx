@@ -1,13 +1,13 @@
-import { cookies } from 'next/headers';
-import { notFound, redirect } from 'next/navigation';
+import { cookies } from "next/headers";
+import { notFound, redirect } from "next/navigation";
 
-import { auth } from '@/app/(app)/(auth)/auth';
-import { Chat } from '@/components/chat';
-import { getChatById, getMessagesByChatId } from '@/lib/db/queries';
-import { DataStreamHandler } from '@/components/data-stream-handler';
-import { DEFAULT_CHAT_MODEL } from '@/lib/ai/models';
-import type { ChatMessage } from '@/payload/payload-types';
-import type { Attachment, UIMessage } from 'ai';
+import { auth } from "@/app/(app)/(auth)/auth";
+import { Chat } from "@/components/chat";
+import { DataStreamHandler } from "@/components/data-stream-handler";
+import { DEFAULT_CHAT_MODEL } from "@/lib/ai/models";
+import { getChatById, getMessagesByChatId } from "@/lib/db/queries";
+import type { AppUsage } from "@/lib/usage";
+import { convertToUIMessages } from "@/lib/utils";
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -21,10 +21,10 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   const session = await auth();
 
   if (!session) {
-    redirect('/api/auth/guest');
+    redirect("/api/auth/guest");
   }
 
-  if (chat.visibility === 'private') {
+  if (chat.visibility === "private") {
     if (!session.user) {
       return notFound();
     }
@@ -38,35 +38,24 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     id,
   });
 
-  function convertToUIMessages(messages: Array<ChatMessage>): Array<UIMessage> {
-    return messages.map((message) => ({
-      id: message.id,
-      parts: message.parts as UIMessage['parts'],
-      role: message.role as UIMessage['role'],
-      // Note: content will soon be deprecated in @ai-sdk/react
-      content: '',
-      createdAt: new Date(message.createdAt),
-      experimental_attachments:
-        (message.attachments as Array<Attachment>) ?? [],
-    }));
-  }
+  const uiMessages = convertToUIMessages(messagesFromDb);
 
   const cookieStore = await cookies();
-  const chatModelFromCookie = cookieStore.get('chat-model');
+  const chatModelFromCookie = cookieStore.get("chat-model");
 
   if (!chatModelFromCookie) {
     return (
       <>
         <Chat
+          autoResume={true}
           id={chat.id}
-          initialMessages={convertToUIMessages(messagesFromDb)}
           initialChatModel={DEFAULT_CHAT_MODEL}
+          initialLastContext={(chat.lastContext as AppUsage) ?? undefined}
+          initialMessages={uiMessages}
           initialVisibilityType={chat.visibility}
           isReadonly={session?.user?.id !== chat.userId}
-          session={session}
-          autoResume={true}
         />
-        <DataStreamHandler id={id} />
+        <DataStreamHandler />
       </>
     );
   }
@@ -74,15 +63,15 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   return (
     <>
       <Chat
+        autoResume={true}
         id={chat.id}
-        initialMessages={convertToUIMessages(messagesFromDb)}
         initialChatModel={chatModelFromCookie.value}
+        initialLastContext={(chat.lastContext as AppUsage) ?? undefined}
+        initialMessages={uiMessages}
         initialVisibilityType={chat.visibility}
         isReadonly={session?.user?.id !== chat.userId}
-        session={session}
-        autoResume={true}
       />
-      <DataStreamHandler id={id} />
+      <DataStreamHandler />
     </>
   );
 }

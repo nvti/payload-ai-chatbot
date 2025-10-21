@@ -25,7 +25,8 @@
       "@payload-config": ["./payload/payload.config"],
       "@/lib/db/queries": ["./payload/queries"],
       "@/*": ["./*"]
-    }
+    },
+    "strictNullChecks": true
   },
   "include": [
     "next-env.d.ts",

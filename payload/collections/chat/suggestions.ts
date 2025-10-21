@@ -1,41 +1,41 @@
-import { CollectionConfig } from 'payload';
+import type { CollectionConfig } from "payload";
 
 export const suggestions: CollectionConfig = {
-  slug: 'chat-suggestions',
+  slug: "chat-suggestions",
   admin: {
-    group: 'Chats',
+    group: "Chats",
   },
   fields: [
     {
-      name: 'documentId',
-      type: 'relationship',
-      relationTo: 'chat-documents',
+      name: "documentId",
+      type: "relationship",
+      relationTo: "chat-documents",
       required: true,
     },
     {
-      name: 'originalText',
-      type: 'text',
+      name: "originalText",
+      type: "text",
       required: true,
     },
     {
-      name: 'suggestedText',
-      type: 'text',
+      name: "suggestedText",
+      type: "text",
       required: true,
     },
     {
-      name: 'description',
-      type: 'textarea',
+      name: "description",
+      type: "textarea",
     },
     {
-      name: 'isResolved',
-      type: 'checkbox',
+      name: "isResolved",
+      type: "checkbox",
       required: true,
       defaultValue: false,
     },
     {
-      name: 'userId',
-      type: 'relationship',
-      relationTo: 'users',
+      name: "userId",
+      type: "relationship",
+      relationTo: "users",
       required: true,
     },
   ],

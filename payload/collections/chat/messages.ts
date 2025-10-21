@@ -1,31 +1,31 @@
-import { CollectionConfig } from 'payload';
+import type { CollectionConfig } from "payload";
 
 export const messages: CollectionConfig = {
-  slug: 'chat-messages',
+  slug: "chat-messages",
   admin: {
-    group: 'Chats',
+    group: "Chats",
   },
   fields: [
     {
-      name: 'chatId',
-      type: 'relationship',
-      relationTo: 'chats',
+      name: "chatId",
+      type: "relationship",
+      relationTo: "chats",
       required: true,
     },
     {
-      name: 'role',
-      type: 'select',
-      options: ['user', 'assistant', 'data', 'system'],
+      name: "role",
+      type: "select",
+      options: ["user", "assistant", "data", "system"],
       required: true,
     },
     {
-      name: 'parts',
-      type: 'json',
+      name: "parts",
+      type: "json",
       required: true,
     },
     {
-      name: 'attachments',
-      type: 'json',
+      name: "attachments",
+      type: "json",
       required: true,
     },
   ],

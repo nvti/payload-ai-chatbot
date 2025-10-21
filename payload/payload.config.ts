@@ -1,19 +1,19 @@
-import sharp from 'sharp';
-import { lexicalEditor } from '@payloadcms/richtext-lexical';
-import { mongooseAdapter } from '@payloadcms/db-mongodb';
+import { mongooseAdapter } from "@payloadcms/db-mongodb";
+import { lexicalEditor } from "@payloadcms/richtext-lexical";
+import path from "path";
 // import { postgresAdapter } from '@payloadcms/db-postgres';
-import { buildConfig } from 'payload';
-import { users } from './collections/users';
-import { documents } from './collections/chat/documents';
-import { chats } from './collections/chat/chats';
-import { messages } from './collections/chat/messages';
-import { suggestions } from './collections/chat/suggestions';
-import { media as chatMedia } from './collections/chat/media';
-import { votes } from './collections/chat/votes';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { admin } from './collections/admin';
-import { stream } from './collections/chat/stream';
+import { buildConfig } from "payload";
+import sharp from "sharp";
+import { fileURLToPath } from "url";
+import { admin } from "./collections/admin";
+import { chats } from "./collections/chat/chats";
+import { documents } from "./collections/chat/documents";
+import { media as chatMedia } from "./collections/chat/media";
+import { messages } from "./collections/chat/messages";
+import { stream } from "./collections/chat/stream";
+import { suggestions } from "./collections/chat/suggestions";
+import { votes } from "./collections/chat/votes";
+import { users } from "./collections/users";
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -33,11 +33,11 @@ export default buildConfig({
   ],
 
   // Your Payload secret - should be a complex and secure string, unguessable
-  secret: process.env.PAYLOAD_SECRET || '',
+  secret: process.env.PAYLOAD_SECRET || "",
   // Whichever Database Adapter you're using should go here
   // Mongoose is shown as an example, but you can also use Postgres
   db: mongooseAdapter({
-    url: process.env.DATABASE_URL || '',
+    url: process.env.DATABASE_URL || "",
     allowIDOnCreate: true, // Allow ID to be set on create
   }),
   // db: postgresAdapter({
@@ -50,7 +50,7 @@ export default buildConfig({
   // If you'd like to use Rich Text, pass your editor here
   editor: lexicalEditor(),
   typescript: {
-    outputFile: path.resolve(dirname, 'payload-types.ts'),
+    outputFile: path.resolve(dirname, "payload-types.ts"),
   },
   // If you want to resize images, crop, set focal point, etc.
   // make sure to install it and pass it to the config.

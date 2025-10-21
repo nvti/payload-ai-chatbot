@@ -1,24 +1,28 @@
-import { RequiredDataFromCollectionSlug } from 'payload';
-import { getPayload } from '../utils';
-import { genSaltSync, hashSync } from 'bcrypt-ts';
-import { generateUUID } from '@/lib/utils';
-import { ChatSDKError } from '@/lib/errors';
+import { genSaltSync, hashSync } from "bcrypt-ts";
+import type { RequiredDataFromCollectionSlug } from "payload";
+import type { VisibilityType } from "@/components/visibility-selector";
+import { generateHashedPassword } from "@/lib/db/utils";
+import { ChatSDKError } from "@/lib/errors";
+import type { AppUsage } from "@/lib/usage";
+import { generateUUID } from "@/lib/utils";
+import type { ChatMessage, ChatSuggestion } from "@/payload/payload-types";
+import { getPayload } from "@/payload/utils";
 
 export async function getUser(email: string) {
   try {
     const payload = await getPayload();
     const { docs: users } = await payload.find({
-      collection: 'users',
+      collection: "users",
       where: { email: { equals: email } },
-      sort: '-createdAt',
+      sort: "-createdAt",
       depth: 0,
       pagination: false,
     });
     return users;
-  } catch (error) {
+  } catch (_error) {
     throw new ChatSDKError(
-      'bad_request:database',
-      'Failed to get user by email',
+      "bad_request:database",
+      "Failed to get user by email"
     );
   }
 }
@@ -30,31 +34,30 @@ export async function createUser(email: string, password: string) {
   try {
     const payload = await getPayload();
     const user = await payload.create({
-      collection: 'users',
+      collection: "users",
       data: { email, password: hash },
     });
     return user;
-  } catch (error) {
-    throw new ChatSDKError('bad_request:database', 'Failed to create user');
+  } catch (_error) {
+    throw new ChatSDKError("bad_request:database", "Failed to create user");
   }
 }
 
 export async function createGuestUser() {
   const email = `guest-${Date.now()}@guest.local`;
-  const salt = genSaltSync(10);
-  const hash = hashSync(generateUUID(), salt);
+  const password = generateHashedPassword(generateUUID());
 
   try {
     const payload = await getPayload();
     const user = await payload.create({
-      collection: 'users',
-      data: { email, password: hash },
+      collection: "users",
+      data: { email, password },
     });
     return user;
-  } catch (error) {
+  } catch (_error) {
     throw new ChatSDKError(
-      'bad_request:database',
-      'Failed to create guest user',
+      "bad_request:database",
+      "Failed to create guest user"
     );
   }
 }
@@ -68,17 +71,17 @@ export async function saveChat({
   id: string;
   userId: string;
   title: string;
-  visibility: 'private' | 'public';
+  visibility: VisibilityType;
 }) {
   try {
     const payload = await getPayload();
     const chat = await payload.create({
-      collection: 'chats',
+      collection: "chats",
       data: { id, userId, title, visibility },
     });
     return chat;
-  } catch (error) {
-    throw new ChatSDKError('bad_request:database', 'Failed to save chat');
+  } catch (_error) {
+    throw new ChatSDKError("bad_request:database", "Failed to save chat");
   }
 }
 
@@ -87,26 +90,84 @@ export async function deleteChatById({ id }: { id: string }) {
   const transactionId = await payload.db.beginTransaction();
   if (!transactionId) {
     throw new ChatSDKError(
-      'bad_request:database',
-      'Failed to begin transaction',
+      "bad_request:database",
+      "Failed to begin transaction"
     );
   }
 
   try {
     await payload.delete({
-      collection: 'chat-votes',
+      collection: "chat-votes",
       where: { chatId: { equals: id } },
     });
     await payload.delete({
-      collection: 'chat-messages',
+      collection: "chat-messages",
       where: { chatId: { equals: id } },
     });
-    await payload.delete({ collection: 'chats', id });
+    await payload.delete({
+      collection: "stream",
+      where: { chat: { equals: id } },
+    });
+    await payload.delete({ collection: "chats", id });
 
     await payload.db.commitTransaction(transactionId);
-  } catch (error) {
+  } catch (_error) {
     await payload.db.rollbackTransaction(transactionId);
-    throw new ChatSDKError('bad_request:database', 'Failed to delete chat');
+    throw new ChatSDKError("bad_request:database", "Failed to delete chat");
+  }
+}
+
+export async function deleteAllChatsByUserId({ userId }: { userId: string }) {
+  const payload = await getPayload();
+  const transactionId = await payload.db.beginTransaction();
+  if (!transactionId) {
+    throw new ChatSDKError(
+      "bad_request:database",
+      "Failed to begin transaction"
+    );
+  }
+  try {
+    const { docs: userChats } = await payload.find({
+      collection: "chats",
+      where: { userId: { equals: userId } },
+      sort: "-createdAt",
+      depth: 0,
+      pagination: false,
+    });
+
+    if (userChats.length === 0) {
+      return { deletedCount: 0 };
+    }
+
+    const chatIds = userChats.map((c) => c.id);
+
+    await payload.delete({
+      collection: "chat-votes",
+      where: { chatId: { in: chatIds } },
+    });
+    await payload.delete({
+      collection: "chat-messages",
+      where: { chatId: { in: chatIds } },
+    });
+    await payload.delete({
+      collection: "stream",
+      where: { chat: { in: chatIds } },
+    });
+
+    const { docs: deletedChats } = await payload.delete({
+      collection: "chats",
+      where: { userId: { equals: userId } },
+    });
+
+    await payload.db.commitTransaction(transactionId);
+
+    return { deletedCount: deletedChats.length };
+  } catch (_error) {
+    await payload.db.rollbackTransaction(transactionId);
+    throw new ChatSDKError(
+      "bad_request:database",
+      "Failed to delete all chats by user id"
+    );
   }
 }
 
@@ -123,20 +184,20 @@ export async function getChatsByUserId({
 }) {
   const payload = await getPayload();
 
-  let startingAfterDate: string | undefined = undefined;
-  let endingBeforeDate: string | undefined = undefined;
+  let startingAfterDate: string | undefined;
+  let endingBeforeDate: string | undefined;
 
   if (startingAfter) {
     try {
       const result = await payload.findByID({
-        collection: 'chats',
+        collection: "chats",
         id: startingAfter,
       });
       startingAfterDate = result.createdAt;
-    } catch (error) {
+    } catch (_error) {
       throw new ChatSDKError(
-        'not_found:database',
-        `Chat with id ${startingAfter} not found`,
+        "not_found:database",
+        `Chat with id ${startingAfter} not found`
       );
     }
   }
@@ -144,14 +205,14 @@ export async function getChatsByUserId({
   if (endingBefore) {
     try {
       const result = await payload.findByID({
-        collection: 'chats',
+        collection: "chats",
         id: endingBefore,
       });
       endingBeforeDate = result.createdAt;
-    } catch (error) {
+    } catch (_error) {
       throw new ChatSDKError(
-        'not_found:database',
-        `Chat with id ${endingBefore} not found`,
+        "not_found:database",
+        `Chat with id ${endingBefore} not found`
       );
     }
   }
@@ -159,7 +220,7 @@ export async function getChatsByUserId({
 
   try {
     const { docs: chats } = await payload.find({
-      collection: 'chats',
+      collection: "chats",
       where: {
         userId: { equals: id },
         createdAt: {
@@ -167,7 +228,7 @@ export async function getChatsByUserId({
           less_than: endingBeforeDate,
         },
       },
-      sort: '-createdAt',
+      sort: "-createdAt",
       depth: 0,
       pagination: false,
       limit: extendedLimit,
@@ -178,10 +239,10 @@ export async function getChatsByUserId({
       chats: hasMore ? chats.slice(0, limit) : chats,
       hasMore,
     };
-  } catch (error) {
+  } catch (_error) {
     throw new ChatSDKError(
-      'bad_request:database',
-      'Failed to get chats by user id',
+      "bad_request:database",
+      "Failed to get chats by user id"
     );
   }
 }
@@ -189,50 +250,53 @@ export async function getChatsByUserId({
 export async function getChatById({ id }: { id: string }) {
   try {
     const payload = await getPayload();
-    const chat = await payload.findByID({ collection: 'chats', id, depth: 0 });
+    const chat = await payload.findByID({ collection: "chats", id, depth: 0 });
     return chat;
-  } catch (error) {
-    throw new ChatSDKError('bad_request:database', 'Failed to get chat by id');
+  } catch (_error) {
+    throw new ChatSDKError("bad_request:database", "Failed to get chat by id");
   }
 }
 
 export async function saveMessages({
   messages,
 }: {
-  messages: Array<RequiredDataFromCollectionSlug<'chat-messages'>>;
+  messages: RequiredDataFromCollectionSlug<"chat-messages">[];
 }) {
   const payload = await getPayload();
-  const results = [];
+  const results: ChatMessage[] = [];
 
   try {
     for (const message of messages) {
       const result = await payload.create({
-        collection: 'chat-messages',
+        collection: "chat-messages",
         data: message,
       });
       results.push(result);
     }
     return results;
-  } catch (error) {
-    throw new ChatSDKError('bad_request:database', 'Failed to save messages');
+  } catch (_error) {
+    throw new ChatSDKError("bad_request:database", "Failed to save messages");
   }
 }
 
 export async function getMessageCountByUserId({
   id,
   differenceInHours,
-}: { id: string; differenceInHours: number }) {
+}: {
+  id: string;
+  differenceInHours: number;
+}) {
   const payload = await getPayload();
 
   const twentyFourHoursAgo = new Date(
-    Date.now() - differenceInHours * 60 * 60 * 1000,
+    Date.now() - differenceInHours * 60 * 60 * 1000
   );
 
   const { totalDocs } = await payload.count({
-    collection: 'chat-messages',
+    collection: "chat-messages",
     where: {
       userId: { equals: id },
-      role: { equals: 'user' },
+      role: { equals: "user" },
       createdAt: { greater_than: twentyFourHoursAgo },
     },
   });
@@ -244,17 +308,17 @@ export async function getMessagesByChatId({ id }: { id: string }) {
   const payload = await getPayload();
   try {
     const { docs: messages } = await payload.find({
-      collection: 'chat-messages',
+      collection: "chat-messages",
       where: { chatId: { equals: id } },
-      sort: 'createdAt',
+      sort: "createdAt",
       depth: 0,
       pagination: false,
     });
     return messages;
-  } catch (error) {
+  } catch (_error) {
     throw new ChatSDKError(
-      'bad_request:database',
-      'Failed to get messages by chat id',
+      "bad_request:database",
+      "Failed to get messages by chat id"
     );
   }
 }
@@ -266,17 +330,17 @@ export async function voteMessage({
 }: {
   chatId: string;
   messageId: string;
-  type: 'up' | 'down';
+  type: "up" | "down";
 }) {
   const payload = await getPayload();
   try {
     const vote = await payload.create({
-      collection: 'chat-votes',
-      data: { chatId, messageId, isUpvoted: type === 'up' },
+      collection: "chat-votes",
+      data: { chatId, messageId, isUpvoted: type === "up" },
     });
     return vote;
-  } catch (error) {
-    throw new ChatSDKError('bad_request:database', 'Failed to vote message');
+  } catch (_error) {
+    throw new ChatSDKError("bad_request:database", "Failed to vote message");
   }
 }
 
@@ -284,17 +348,17 @@ export async function getVotesByChatId({ id }: { id: string }) {
   const payload = await getPayload();
   try {
     const { docs: votes } = await payload.find({
-      collection: 'chat-votes',
+      collection: "chat-votes",
       where: { chatId: { equals: id } },
-      sort: '-createdAt',
+      sort: "-createdAt",
       depth: 0,
       pagination: false,
     });
     return votes;
-  } catch (error) {
+  } catch (_error) {
     throw new ChatSDKError(
-      'bad_request:database',
-      'Failed to get votes by chat id',
+      "bad_request:database",
+      "Failed to get votes by chat id"
     );
   }
 }
@@ -308,19 +372,19 @@ export async function saveDocument({
 }: {
   id: string;
   title: string;
-  kind: 'text' | 'image' | 'code' | 'sheet';
+  kind: "text" | "image" | "code" | "sheet";
   content: string;
   userId: string;
 }) {
   const payload = await getPayload();
   try {
     const document = await payload.create({
-      collection: 'chat-documents',
-      data: { documentId: id, title, kind, content, userId },
+      collection: "chat-documents",
+      data: { id, title, kind, content, userId },
     });
     return document;
-  } catch (error) {
-    throw new ChatSDKError('bad_request:database', 'Failed to save document');
+  } catch (_error) {
+    throw new ChatSDKError("bad_request:database", "Failed to save document");
   }
 }
 
@@ -328,17 +392,17 @@ export async function getDocumentsByChatId({ id }: { id: string }) {
   const payload = await getPayload();
   try {
     const { docs } = await payload.find({
-      collection: 'chat-documents',
+      collection: "chat-documents",
       where: { chatId: { equals: id } },
-      sort: '-createdAt',
+      sort: "-createdAt",
       depth: 0,
       pagination: false,
     });
     return docs;
-  } catch (error) {
+  } catch (_error) {
     throw new ChatSDKError(
-      'bad_request:database',
-      'Failed to get documents by chat id',
+      "bad_request:database",
+      "Failed to get documents by chat id"
     );
   }
 }
@@ -347,19 +411,19 @@ export async function getDocumentsById({ id }: { id: string }) {
   const payload = await getPayload();
   try {
     const { docs } = await payload.find({
-      collection: 'chat-documents',
+      collection: "chat-documents",
       where: {
         documentId: { equals: id },
       },
-      sort: 'createdAt',
+      sort: "createdAt",
       depth: 0,
       pagination: false,
     });
     return docs;
-  } catch (error) {
+  } catch (_error) {
     throw new ChatSDKError(
-      'bad_request:database',
-      'Failed to get documents by id',
+      "bad_request:database",
+      "Failed to get documents by id"
     );
   }
 }
@@ -368,18 +432,18 @@ export async function getDocumentById({ id }: { id: string }) {
   const payload = await getPayload();
   try {
     const { docs } = await payload.find({
-      collection: 'chat-documents',
+      collection: "chat-documents",
       where: {
         documentId: { equals: id },
       },
-      sort: '-createdAt',
+      sort: "-createdAt",
       limit: 1,
     });
     return docs[0];
-  } catch (error) {
+  } catch (_error) {
     throw new ChatSDKError(
-      'bad_request:database',
-      'Failed to get document by id',
+      "bad_request:database",
+      "Failed to get document by id"
     );
   }
 }
@@ -395,21 +459,21 @@ export async function deleteDocumentsByIdAfterTimestamp({
   const transactionId = await payload.db.beginTransaction();
   if (!transactionId) {
     throw new ChatSDKError(
-      'bad_request:database',
-      'Failed to begin transaction',
+      "bad_request:database",
+      "Failed to begin transaction"
     );
   }
   try {
     await payload.delete({
-      collection: 'chat-suggestions',
+      collection: "chat-suggestions",
       where: {
-        'documentId.documentId': { equals: id },
-        'documentId.createdAt': { greater_than: timestamp },
+        "documentId.documentId": { equals: id },
+        "documentId.createdAt": { greater_than: timestamp },
       },
     });
 
     await payload.delete({
-      collection: 'chat-documents',
+      collection: "chat-documents",
       where: {
         documentId: { equals: id },
         createdAt: { greater_than: timestamp },
@@ -417,11 +481,11 @@ export async function deleteDocumentsByIdAfterTimestamp({
     });
 
     await payload.db.commitTransaction(transactionId);
-  } catch (error) {
+  } catch (_error) {
     await payload.db.rollbackTransaction(transactionId);
     throw new ChatSDKError(
-      'bad_request:database',
-      'Failed to delete documents by id after timestamp',
+      "bad_request:database",
+      "Failed to delete documents by id after timestamp"
     );
   }
 }
@@ -429,23 +493,23 @@ export async function deleteDocumentsByIdAfterTimestamp({
 export async function saveSuggestions({
   suggestions,
 }: {
-  suggestions: Array<RequiredDataFromCollectionSlug<'chat-suggestions'>>;
+  suggestions: RequiredDataFromCollectionSlug<"chat-suggestions">[];
 }) {
   const payload = await getPayload();
-  const results = [];
+  const results: ChatSuggestion[] = [];
   try {
     for (const suggestion of suggestions) {
       const result = await payload.create({
-        collection: 'chat-suggestions',
+        collection: "chat-suggestions",
         data: suggestion,
       });
       results.push(result);
     }
     return results;
-  } catch (error) {
+  } catch (_error) {
     throw new ChatSDKError(
-      'bad_request:database',
-      'Failed to save suggestions',
+      "bad_request:database",
+      "Failed to save suggestions"
     );
   }
 }
@@ -458,17 +522,17 @@ export async function getSuggestionsByDocumentId({
   const payload = await getPayload();
   try {
     const { docs } = await payload.find({
-      collection: 'chat-suggestions',
-      where: { 'documentId.documentId': { equals: documentId } },
-      sort: '-createdAt',
+      collection: "chat-suggestions",
+      where: { "documentId.documentId": { equals: documentId } },
+      sort: "-createdAt",
       depth: 0,
       pagination: false,
     });
     return docs;
-  } catch (error) {
+  } catch (_error) {
     throw new ChatSDKError(
-      'bad_request:database',
-      'Failed to get suggestions by document id',
+      "bad_request:database",
+      "Failed to get suggestions by document id"
     );
   }
 }
@@ -477,14 +541,14 @@ export async function getMessageById({ id }: { id: string }) {
   const payload = await getPayload();
   try {
     const message = await payload.findByID({
-      collection: 'chat-messages',
+      collection: "chat-messages",
       id,
     });
     return message;
-  } catch (error) {
+  } catch (_error) {
     throw new ChatSDKError(
-      'bad_request:database',
-      'Failed to get message by id',
+      "bad_request:database",
+      "Failed to get message by id"
     );
   }
 }
@@ -500,18 +564,18 @@ export async function deleteMessagesByChatIdAfterTimestamp({
   const transactionId = await payload.db.beginTransaction();
   if (!transactionId) {
     throw new ChatSDKError(
-      'bad_request:database',
-      'Failed to begin transaction',
+      "bad_request:database",
+      "Failed to begin transaction"
     );
   }
   try {
     const { docs: messagesToDelete } = await payload.find({
-      collection: 'chat-messages',
+      collection: "chat-messages",
       where: {
         chatId: { equals: chatId },
         createdAt: { greater_than: timestamp },
       },
-      sort: '-createdAt',
+      sort: "-createdAt",
       depth: 0,
       pagination: false,
     });
@@ -520,22 +584,22 @@ export async function deleteMessagesByChatIdAfterTimestamp({
 
     if (messageIds.length > 0) {
       await payload.delete({
-        collection: 'chat-votes',
+        collection: "chat-votes",
         where: { messageId: { in: messageIds } },
       });
 
       return await payload.delete({
-        collection: 'chat-messages',
+        collection: "chat-messages",
         where: { id: { in: messageIds } },
       });
     }
 
     await payload.db.commitTransaction(transactionId);
-  } catch (error) {
+  } catch (_error) {
     await payload.db.rollbackTransaction(transactionId);
     throw new ChatSDKError(
-      'bad_request:database',
-      'Failed to delete messages by chat id after timestamp',
+      "bad_request:database",
+      "Failed to delete messages by chat id after timestamp"
     );
   }
 }
@@ -545,20 +609,41 @@ export async function updateChatVisibilityById({
   visibility,
 }: {
   chatId: string;
-  visibility: 'private' | 'public';
+  visibility: "private" | "public";
 }) {
   const payload = await getPayload();
   try {
     await payload.update({
-      collection: 'chats',
+      collection: "chats",
       id: chatId,
       data: { visibility },
     });
-  } catch (error) {
+  } catch (_error) {
     throw new ChatSDKError(
-      'bad_request:database',
-      'Failed to update chat visibility by id',
+      "bad_request:database",
+      "Failed to update chat visibility by id"
     );
+  }
+}
+
+export async function updateChatLastContextById({
+  chatId,
+  context,
+}: {
+  chatId: string;
+  // Store merged server-enriched usage object
+  context: AppUsage;
+}) {
+  try {
+    const payload = await getPayload();
+    await payload.update({
+      collection: "chats",
+      id: chatId,
+      data: { lastContext: context },
+    });
+  } catch (error) {
+    console.warn("Failed to update lastContext for chat", chatId, error);
+    return;
   }
 }
 
@@ -572,15 +657,15 @@ export async function createStreamId({
   const payload = await getPayload();
   try {
     const stream = await payload.create({
-      collection: 'stream',
+      collection: "stream",
       data: { id: streamId, chat: chatId },
     });
 
     return stream;
-  } catch (error) {
+  } catch (_error) {
     throw new ChatSDKError(
-      'bad_request:database',
-      'Failed to create stream id',
+      "bad_request:database",
+      "Failed to create stream id"
     );
   }
 }
@@ -589,19 +674,19 @@ export async function getStreamIdsByChatId({ chatId }: { chatId: string }) {
   const payload = await getPayload();
   try {
     const { docs: streams } = await payload.find({
-      collection: 'stream',
+      collection: "stream",
       where: { chat: { equals: chatId } },
       depth: 0,
       pagination: false,
       select: {},
-      sort: 'createdAt',
+      sort: "createdAt",
     });
 
     return streams.map((stream) => stream.id);
-  } catch (error) {
+  } catch (_error) {
     throw new ChatSDKError(
-      'bad_request:database',
-      'Failed to get stream ids by chat id',
+      "bad_request:database",
+      "Failed to get stream ids by chat id"
     );
   }
 }

@@ -143,6 +143,13 @@ export interface Admin {
   hash?: string | null;
   loginAttempts?: number | null;
   lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
   password?: string | null;
 }
 /**
@@ -166,6 +173,31 @@ export interface Chat {
   title: string;
   userId: string | User;
   visibility: 'public' | 'private';
+  lastContext?: {
+    modelId?: string;
+    context?: {
+      inputMax?: number;
+      outputMax?: number;
+      combinedMax?: number;
+      totalMax?: number;
+      [k: string]: unknown;
+    };
+    costUSD?: {
+      inputUSD?: number;
+      outputUSD?: number;
+      totalUSD?: number;
+      reasoningUSD?: number;
+      cacheReadUSD?: number;
+      cacheWriteUSD?: number;
+      [k: string]: unknown;
+    };
+    inputTokens?: number;
+    outputTokens?: number;
+    totalTokens?: number;
+    reasoningTokens?: number;
+    cachedInputTokens?: number;
+    [k: string]: unknown;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -216,7 +248,6 @@ export interface ChatVote {
  */
 export interface ChatDocument {
   id: string;
-  documentId: string;
   title: string;
   content: string;
   kind: 'text' | 'code' | 'image' | 'sheet';
@@ -367,6 +398,13 @@ export interface AdminSelect<T extends boolean = true> {
   hash?: T;
   loginAttempts?: T;
   lockUntil?: T;
+  sessions?:
+    | T
+    | {
+        id?: T;
+        createdAt?: T;
+        expiresAt?: T;
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -387,6 +425,7 @@ export interface ChatsSelect<T extends boolean = true> {
   title?: T;
   userId?: T;
   visibility?: T;
+  lastContext?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -418,7 +457,6 @@ export interface ChatVotesSelect<T extends boolean = true> {
  * via the `definition` "chat-documents_select".
  */
 export interface ChatDocumentsSelect<T extends boolean = true> {
-  documentId?: T;
   title?: T;
   content?: T;
   kind?: T;
