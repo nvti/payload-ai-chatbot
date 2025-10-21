@@ -6,7 +6,9 @@
       "**/*",
       "!components/ui",
       "!lib/utils.ts",
-      "!hooks/use-mobile.ts"
+      "!hooks/use-mobile.ts",
+      "!payload/payload-types.ts",
+      "!app/(payload)/admin/importMap.js"
     ]
   },
   "linter": {
